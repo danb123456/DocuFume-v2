@@ -1,0 +1,8 @@
+
+{
+  "name": "DocuFume - Enterprise Document Management",
+  "description": "A world-class, enterprise-grade in-house document signing platform designed for BBQ FESTIVALS LTD to manage, tag, and sign legal envelopes with precision.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

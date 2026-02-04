@@ -1,0 +1,113 @@
+
+import { supabase } from './supabase';
+import { Envelope, DocStatus } from '../types';
+
+export const db = {
+  getEnvelopes: async (): Promise<Envelope[]> => {
+    const { data, error } = await supabase
+      .from('envelopes')
+      .select('*')
+      .order('createdAt', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching envelopes:', error);
+      return [];
+    }
+    
+    return (data || []) as Envelope[];
+  },
+
+  uploadFile: async (id: string, fileName: string, dataUrl: string): Promise<string> => {
+    const base64Data = dataUrl.split(',')[1];
+    const contentType = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+    
+    const byteCharacters = atob(base64Data);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: contentType });
+
+    const filePath = `${id}/${fileName}`;
+    const { data, error } = await supabase.storage
+      .from('documents')
+      .upload(filePath, blob, {
+        upsert: true,
+        contentType: contentType
+      });
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('documents')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  },
+
+  saveEnvelope: async (envelope: Envelope): Promise<void> => {
+    const { error } = await supabase
+      .from('envelopes')
+      .upsert({
+        id: envelope.id,
+        name: envelope.name,
+        status: envelope.status,
+        createdAt: envelope.createdAt,
+        recipients: envelope.recipients,
+        currentOrder: envelope.currentOrder,
+        documentUrl: envelope.documentUrl,
+        fields: envelope.fields,
+        archiveUrl: envelope.archiveUrl
+      });
+
+    if (error) throw error;
+  },
+
+  deleteEnvelope: async (id: string): Promise<void> => {
+    try {
+      const { data: files, error: listError } = await supabase.storage
+        .from('documents')
+        .list(id);
+
+      if (!listError && files && files.length > 0) {
+        const filePaths = files.map(f => `${id}/${f.name}`);
+        await supabase.storage
+          .from('documents')
+          .remove(filePaths);
+      }
+    } catch (e) {
+      console.warn('Storage cleanup non-critical failure:', e);
+    }
+
+    const { error } = await supabase
+      .from('envelopes')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Database deletion failed:', error);
+      throw error;
+    }
+  },
+
+  getEnvelopeById: async (id: string): Promise<Envelope | null> => {
+    const { data, error } = await supabase
+      .from('envelopes')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) return null;
+    return data as Envelope;
+  },
+
+  updateStatus: async (id: string, status: DocStatus): Promise<void> => {
+    const { error } = await supabase
+      .from('envelopes')
+      .update({ status })
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+};
