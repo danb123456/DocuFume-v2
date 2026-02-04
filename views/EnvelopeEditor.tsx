@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '../services/db';
 import { Envelope, DocStatus, FieldType, DocField, Recipient } from '../types';
 import { GoogleGenAI } from "@google/genai";
+import { createSigningLink } from '../services/db';
 
 declare const pdfjsLib: any;
 
@@ -132,6 +133,13 @@ const EnvelopeEditor: React.FC = () => {
         fields
       };
       await db.saveEnvelope(newEnv);
+
+      // create signing link for first recipient
+      await createSigningLink({
+      envelopeId: id,
+      signerEmail: recipients.find(r => r.order === 1)!.email
+      });
+
       setStep(4);
     } catch (err: any) {
       alert(`Registry Conflict: ${err.message}`);
