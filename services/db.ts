@@ -16,6 +16,22 @@ export const db = {
     
     return (data || []) as Envelope[];
   },
+  
+async function getSigningLinkByToken(token: string) {
+  const { data, error } = await supabase
+    .from('signing_links')
+    .select('*')
+    .eq('token', token)
+    .single();
+
+  if (error) return null;
+  return data;
+}
+
+export const db = {
+  ...
+  getSigningLinkByToken,
+};
 
   uploadFile: async (id: string, fileName: string, dataUrl: string): Promise<string> => {
     const base64Data = dataUrl.split(',')[1];
