@@ -109,5 +109,26 @@ export const db = {
       .eq('id', id);
 
     if (error) throw error;
+  },
+    ,
+
+  createSigningLink: async (
+    envelopeId: string,
+    signerEmail: string
+  ): Promise<string> => {
+    const token = crypto.randomUUID();
+
+    const { error } = await supabase
+      .from('signing_links')
+      .insert({
+        envelope_id: envelopeId,
+        signer_email: signerEmail,
+        token,
+        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24) // 24h
+      });
+
+    if (error) throw error;
+
+    return `${window.location.origin}/sign/${token}`;
   }
 };
