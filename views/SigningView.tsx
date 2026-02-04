@@ -5,7 +5,7 @@ import { db } from '../services/db';
 import { Envelope, DocStatus, FieldType, Recipient, DocField } from '../types';
 
 const SigningView: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const [envelope, setEnvelope] = useState<Envelope | null>(null);
   const [currentRecipient, setCurrentRecipient] = useState<Recipient | null>(null);
@@ -21,14 +21,24 @@ const SigningView: React.FC = () => {
   const isDrawing = useRef(false);
 
   useEffect(() => {
-    const load = async () => {
-      if (id) {
-        const data = await db.getEnvelopeById(id);
-        if (data) setEnvelope(data);
-      }
-    };
-    load();
-  }, [id]);
+  const load = async () => {
+    if (!token) return;
+
+    // 1. Resolve signing link
+    const link = await db.getSigningLinkByToken(token);
+    if (!link) {
+      alert('This signing link is invalid or expired.');
+      return;
+    }
+
+    // 2. Load envelope
+    const data = await db.getEnvelopeById(link.envelope_id);
+    if (data) setEnvelope(data);
+  };
+
+  load();
+}, [token]);
+
 
   const verifyIdentity = () => {
     if (!envelope) return;
