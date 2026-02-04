@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '../services/db';
 import { Envelope, DocStatus, FieldType, DocField, Recipient } from '../types';
 import { GoogleGenAI } from "@google/genai";
-import { createSigningLink } from '../services/db';
 
 declare const pdfjsLib: any;
 
