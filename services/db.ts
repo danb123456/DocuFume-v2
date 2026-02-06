@@ -6,7 +6,7 @@ export const db = {
     const { data, error } = await supabase
       .from('envelopes')
       .select('*')
-      .order('createdAt', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (error) {
       console.error('Error fetching envelopes:', error)
