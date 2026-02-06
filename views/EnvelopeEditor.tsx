@@ -96,7 +96,7 @@ const EnvelopeEditor: React.FC = () => {
       const newEnv: Envelope = {
         id,
         name: envelopeName,
-        status: DocStatus.PENDING,
+        status: DocStatus.SENT,
         created_at: new Date().toISOString(),
         recipients,
         current_order: 1,
