@@ -35,7 +35,7 @@ export interface Envelope {
   id: string;
   name: string;
   status: DocStatus;
-  createdAt: string;
+  created_at: string;
   recipients: Recipient[];
   currentOrder: number; // The current order index allowed to sign (starting at 1)
   documentUrl: string; // Master Plate URL
