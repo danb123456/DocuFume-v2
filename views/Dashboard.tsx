@@ -53,7 +53,7 @@ const Dashboard: React.FC = () => {
   const getStatusColor = (status: DocStatus) => {
     switch (status) {
       case DocStatus.COMPLETED: return 'bg-emerald-100 text-emerald-700';
-      case DocStatus.PENDING: return 'bg-amber-100 text-amber-700';
+      case DocStatus.SENT: return 'bg-amber-100 text-amber-700';
       case DocStatus.DRAFT: return 'bg-slate-100 text-slate-700';
     }
   };
@@ -128,7 +128,7 @@ const SupabaseSetupGuide: React.FC<{ error: string | null }> = ({ error }) => {
 -- FIX: Syncing Registry Status Constraints
 -- Run this in your Supabase SQL Editor to allow enterprise status values
 ALTER TABLE public.envelopes DROP CONSTRAINT IF EXISTS envelopes_status_check;
-ALTER TABLE public.envelopes ADD CONSTRAINT envelopes_status_check CHECK (status IN ('DRAFT', 'PENDING', 'COMPLETED'));
+ALTER TABLE public.envelopes ADD CONSTRAINT envelopes_status_check CHECK (status IN ('DRAFT', 'SENT', 'COMPLETED'));
 `.trim();
 
   const fullSchema = `
@@ -136,7 +136,7 @@ ALTER TABLE public.envelopes ADD CONSTRAINT envelopes_status_check CHECK (status
 CREATE TABLE IF NOT EXISTS public.envelopes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
-  status text NOT NULL CHECK (status IN ('DRAFT', 'PENDING', 'COMPLETED')),
+  status text NOT NULL CHECK (status IN ('DRAFT', 'SENT', 'COMPLETED')),
   created_at timestamp with time zone DEFAULT now(),
   recipients jsonb NOT NULL DEFAULT '[]'::jsonb,
   current_order integer NOT NULL DEFAULT 1,
