@@ -40,7 +40,7 @@ export interface Envelope {
   current_order: number; // The current order index allowed to sign (starting at 1)
   document_url: string; // Master Plate URL
   fields: DocField[];
-  archiveUrl?: string;
+  archive_url?: string;
 }
 
 export interface User {
