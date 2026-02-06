@@ -68,7 +68,7 @@ export const db = {
       status: envelope.status,
       created_at: envelope.created_at,
       recipients: envelope.recipients,
-      currentOrder: envelope.currentOrder,
+      current_order: envelope.current_order,
       documentUrl: envelope.documentUrl,
       fields: envelope.fields,
       archiveUrl: envelope.archiveUrl
