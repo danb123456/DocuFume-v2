@@ -1,8 +1,8 @@
 
 export enum DocStatus {
-  DRAFT = 'DRAFT',
-  PENDING = 'PENDING',
-  COMPLETED = 'COMPLETED'
+  DRAFT = 'draft',
+  SENT = 'sent',
+  COMPLETED = 'completed'
 }
 
 export enum FieldType {
