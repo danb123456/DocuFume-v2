@@ -103,7 +103,7 @@ const SigningView: React.FC = () => {
 
       await db.saveEnvelope({
         ...envelope,
-        status: isLastSigner ? DocStatus.COMPLETED : DocStatus.PENDING,
+        status: isLastSigner ? DocStatus.COMPLETED : DocStatus.SENT,
         current_order: nextOrder,
         document_url: signedUrl,
         recipients: updatedRecipients,
