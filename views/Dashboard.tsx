@@ -35,9 +35,7 @@ const Dashboard: React.FC = () => {
 
   const handleDelete = async (id: string, name: string) => {
     if (isDeleting) return;
-    
-    const confirmed = window.confirm(`DANGER: Are you sure you want to permanently delete "${name}"? This will remove the legal record from the Registry and purge all physical files from Supabase Cloud Storage.`);
-    
+    const confirmed = window.confirm(`DANGER: Are you sure you want to permanently delete "${name}"?`);
     if (!confirmed) return;
 
     setIsDeleting(id);
@@ -46,7 +44,7 @@ const Dashboard: React.FC = () => {
       setEnvelopes(prev => prev.filter(e => e.id !== id));
     } catch (err: any) {
       console.error('Delete action failed:', err);
-      alert(`Deletion Failed!\n\nReason: ${err.message || 'Check your Supabase RLS policies.'}`);
+      alert(`Deletion Failed: ${err.message}`);
     } finally {
       setIsDeleting(null);
     }
@@ -62,22 +60,12 @@ const Dashboard: React.FC = () => {
 
   const getCurrentSigner = (env: Envelope) => {
     if (env.status === DocStatus.COMPLETED) return "All Signed";
-    const current = env.recipients?.find(r => r.order === env.currentOrder);
+    const current = env.recipients?.find(r => r.order === env.current_order);
     return current ? current.email : "Unknown";
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="h-16 shimmer rounded-2xl w-full"></div>
-        <div className="h-64 shimmer rounded-[3rem] w-full"></div>
-      </div>
-    );
-  }
-
-  if (connectionStatus && !connectionStatus.connected) {
-    return <SupabaseSetupGuide error={connectionStatus.error} />;
-  }
+  if (loading) return <div className="space-y-6"><div className="h-16 shimmer rounded-2xl w-full"></div><div className="h-64 shimmer rounded-[3rem] w-full"></div></div>;
+  if (connectionStatus && !connectionStatus.connected) return <SupabaseSetupGuide error={connectionStatus.error} />;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -86,17 +74,7 @@ const Dashboard: React.FC = () => {
           <h2 className="text-4xl inter-black text-slate-900 tracking-tight">Legal Registry</h2>
           <div className="flex items-center gap-2 mt-1">
             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-            <p className="text-slate-500 font-medium text-sm">Supabase Infrastructure Active</p>
-          </div>
-        </div>
-        <div className="flex gap-4">
-          <div className="bg-white border border-slate-200 px-6 py-3 rounded-2xl text-center shadow-sm">
-            <span className="block text-2xl font-black text-slate-900">{envelopes.filter(e => e.status === DocStatus.COMPLETED).length}</span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Completed</span>
-          </div>
-          <div className="bg-white border border-slate-200 px-6 py-3 rounded-2xl text-center shadow-sm">
-            <span className="block text-2xl font-black text-blue-600">{envelopes.filter(e => e.status === DocStatus.PENDING).length}</span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">In Workflow</span>
+            <p className="text-slate-500 font-medium text-sm">Registry Sync Active</p>
           </div>
         </div>
       </div>
@@ -114,53 +92,23 @@ const Dashboard: React.FC = () => {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {envelopes.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-8 py-20 text-center text-slate-400 font-medium">
-                  Registry is currently empty.
-                </td>
-              </tr>
+              <tr><td colSpan={5} className="px-8 py-20 text-center text-slate-400">Registry is empty.</td></tr>
             ) : envelopes.map((env) => (
               <tr key={env.id} className={`hover:bg-slate-50/50 transition-all ${isDeleting === env.id ? 'opacity-40 bg-red-50' : ''}`}>
+                <td className="px-8 py-6 font-bold text-slate-900">{env.name}</td>
+                <td className="px-8 py-6 text-slate-600">{getCurrentSigner(env)}</td>
                 <td className="px-8 py-6">
-                  <span className="font-bold text-slate-900">{env.name}</span>
+                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${getStatusColor(env.status)}`}>{env.status}</span>
                 </td>
+                <td className="px-8 py-6 text-slate-400 text-sm">{new Date(env.created_at).toLocaleDateString()}</td>
                 <td className="px-8 py-6">
-                  <span className="text-slate-600 font-medium">{getCurrentSigner(env)}</span>
-                </td>
-                <td className="px-8 py-6">
-                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${getStatusColor(env.status)}`}>
-                    {env.status}
-                  </span>
-                </td>
-                <td className="px-8 py-6">
-                  <span className="text-slate-400 text-sm font-medium">{new Date(env.createdAt).toLocaleDateString()}</span>
-                </td>
-                <td className="px-8 py-6">
-                  <div className="flex gap-4 items-center">
+                  <div className="flex gap-4">
                     {env.status !== DocStatus.COMPLETED ? (
-                      <button 
-                        disabled={!!isDeleting}
-                        onClick={() => {
-                          const url = getPublicSignLink(env.id);
-                          navigator.clipboard.writeText(url);
-                          alert('Smart Link copied!');
-                        }}
-                        className="text-blue-600 font-bold text-xs hover:underline disabled:opacity-50"
-                      >
-                        Copy Link
-                      </button>
+                      <button onClick={() => { navigator.clipboard.writeText(getPublicSignLink(env.id)); alert('Link copied!'); }} className="text-blue-600 font-bold text-xs">Copy Link</button>
                     ) : (
-                      <a href={env.archiveUrl} target="_blank" rel="noreferrer" className="text-emerald-600 font-bold text-xs hover:underline">
-                        View Executed
-                      </a>
+                      <a href={env.archive_url} target="_blank" rel="noreferrer" className="text-emerald-600 font-bold text-xs">View Executed</a>
                     )}
-                    <button 
-                      disabled={!!isDeleting}
-                      onClick={() => handleDelete(env.id, env.name)}
-                      className="text-red-400 hover:text-red-600 font-bold text-xs transition-colors disabled:opacity-50"
-                    >
-                      {isDeleting === env.id ? 'Purging...' : 'Delete'}
-                    </button>
+                    <button onClick={() => handleDelete(env.id, env.name)} className="text-red-400 font-bold text-xs">Delete</button>
                   </div>
                 </td>
               </tr>
@@ -173,112 +121,43 @@ const Dashboard: React.FC = () => {
 };
 
 const SupabaseSetupGuide: React.FC<{ error: string | null }> = ({ error }) => {
-  const isMissingColumns = error?.toLowerCase().includes('currentorder') || error?.toLowerCase().includes('column');
-
-  const repairSql = `
--- REPAIR SCRIPT: Run this in the Supabase SQL Editor
-alter table if exists public.envelopes 
-  add column if not exists "currentOrder" integer not null default 1,
-  add column if not exists recipients jsonb not null default '[]'::jsonb,
-  add column if not exists fields jsonb not null default '[]'::jsonb,
-  add column if not exists "archiveUrl" text;
-
--- Ensure RLS is active
-alter table public.envelopes enable row level security;
-drop policy if exists "Enable all for anon" on public.envelopes;
-create policy "Enable all for anon" on public.envelopes
-  for all to anon using (true) with check (true);
-`.trim();
-
   const fullSchema = `
--- FULL TABLE RESET (Run this to start from scratch)
-drop table if exists public.envelopes;
-
-create table public.envelopes (
-  id text primary key,
-  name text not null,
-  status text not null,
-  "createdAt" timestamp with time zone default now(),
-  recipients jsonb not null default '[]'::jsonb,
-  "currentOrder" integer not null default 1,
-  "documentUrl" text not null,
-  fields jsonb not null default '[]'::jsonb,
-  "archiveUrl" text
+-- COPY & RUN IN SUPABASE SQL EDITOR
+CREATE TABLE IF NOT EXISTS public.envelopes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  status text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  recipients jsonb NOT NULL DEFAULT '[]'::jsonb,
+  current_order integer NOT NULL DEFAULT 1,
+  document_url text NOT NULL,
+  fields jsonb NOT NULL DEFAULT '[]'::jsonb,
+  archive_url text
 );
 
-alter table public.envelopes enable row level security;
-create policy "Enable all for anon" on public.envelopes for all to anon using (true) with check (true);
+CREATE TABLE IF NOT EXISTS public.signing_links (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  envelope_id uuid REFERENCES public.envelopes(id) ON DELETE CASCADE,
+  signer_email text NOT NULL,
+  token text NOT NULL UNIQUE,
+  expires_at timestamp with time zone NOT NULL,
+  used_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE public.envelopes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access" ON public.envelopes;
+CREATE POLICY "Public access" ON public.envelopes FOR ALL TO anon USING (true) WITH CHECK (true);
 `.trim();
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="bg-slate-900 text-white p-12 rounded-[3rem] shadow-2xl border border-slate-700">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center border border-red-500/30">
-             <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-          </div>
-          <h2 className="text-3xl inter-black">Registry Conflict Detected</h2>
-        </div>
-        
-        <div className="bg-red-500/10 p-6 rounded-2xl mb-8 border border-red-500/20">
-          <p className="text-red-400 font-mono text-sm mb-2 font-bold uppercase tracking-wider">Error Details:</p>
-          <p className="text-white font-mono text-xs opacity-80">{error || "Missing structure in Supabase."}</p>
-        </div>
-
-        {isMissingColumns ? (
-          <div className="space-y-6">
-            <div className="bg-blue-600/10 border border-blue-500/30 p-8 rounded-[2rem] flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl mb-4 font-black">!</div>
-              <h3 className="text-xl font-bold mb-2">Column Conflict Identified</h3>
-              <p className="text-slate-400 text-sm mb-8 max-w-md">Your database table is missing the columns required for multi-signer workflows. Run the repair script below to fix it instantly.</p>
-              
-              <div className="w-full bg-black/40 p-4 rounded-xl text-left mb-6">
-                <pre className="text-[10px] text-blue-300 overflow-x-auto font-mono">{repairSql}</pre>
-              </div>
-
-              <button 
-                onClick={() => { navigator.clipboard.writeText(repairSql); alert('Repair SQL Copied!'); }}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-blue-900/40"
-              >
-                Copy Repair SQL
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-6">
-             <div className="bg-white/5 p-8 rounded-[2rem] border border-white/10 flex flex-col">
-              <h3 className="text-lg font-bold mb-2">Repair Existing</h3>
-              <p className="text-slate-400 text-xs mb-6 flex-grow">Add missing columns to your current envelopes table.</p>
-              <button 
-                onClick={() => { navigator.clipboard.writeText(repairSql); alert('Repair SQL Copied!'); }}
-                className="bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all"
-              >
-                Copy Repair Script
-              </button>
-            </div>
-            
-            <div className="bg-white/5 p-8 rounded-[2rem] border border-white/10 flex flex-col">
-              <h3 className="text-lg font-bold mb-2">Full Migration</h3>
-              <p className="text-slate-400 text-xs mb-6 flex-grow">Rebuild the table from scratch (Deletes existing data).</p>
-              <button 
-                onClick={() => { navigator.clipboard.writeText(fullSchema); alert('Full SQL Copied!'); }}
-                className="bg-slate-700 hover:bg-slate-600 text-white font-black py-4 rounded-2xl transition-all"
-              >
-                Copy Full Reset
-              </button>
-            </div>
-          </div>
-        )}
-        
-        <div className="mt-10 pt-10 border-t border-white/10 text-center">
-            <p className="text-slate-400 text-sm mb-6">1. Run the script in Supabase SQL Editor<br/>2. Refresh this page to reconnect.</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="bg-white text-slate-900 font-black px-12 py-5 rounded-2xl hover:bg-slate-100 transition-all shadow-2xl"
-            >
-              Reconnect Registry
-            </button>
-        </div>
+        <h2 className="text-3xl inter-black mb-6">Database Schema Mismatch</h2>
+        <p className="text-red-400 font-mono text-sm bg-red-500/10 p-4 rounded-xl mb-8 border border-red-500/20">{error}</p>
+        <button onClick={() => { navigator.clipboard.writeText(fullSchema); alert('SQL Copied!'); }} className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl mb-6">Copy Correct Schema SQL</button>
+        <button onClick={() => window.location.reload()} className="w-full bg-white text-slate-900 font-black py-5 rounded-2xl">Reconnect Registry</button>
       </div>
     </div>
   );
