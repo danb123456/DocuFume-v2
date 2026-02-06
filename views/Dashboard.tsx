@@ -121,12 +121,22 @@ const Dashboard: React.FC = () => {
 };
 
 const SupabaseSetupGuide: React.FC<{ error: string | null }> = ({ error }) => {
+  const isConstraintError = error?.toLowerCase().includes('constraint') || error?.toLowerCase().includes('status_check');
+  const isColumnError = error?.toLowerCase().includes('column') || error?.toLowerCase().includes('current_order');
+
+  const fixConstraintSql = `
+-- FIX: Syncing Registry Status Constraints
+-- Run this in your Supabase SQL Editor to allow enterprise status values
+ALTER TABLE public.envelopes DROP CONSTRAINT IF EXISTS envelopes_status_check;
+ALTER TABLE public.envelopes ADD CONSTRAINT envelopes_status_check CHECK (status IN ('DRAFT', 'PENDING', 'COMPLETED'));
+`.trim();
+
   const fullSchema = `
--- COPY & RUN IN SUPABASE SQL EDITOR
+-- FULL TABLE SETUP (Matches your snake_case visualizer)
 CREATE TABLE IF NOT EXISTS public.envelopes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
-  status text NOT NULL,
+  status text NOT NULL CHECK (status IN ('DRAFT', 'PENDING', 'COMPLETED')),
   created_at timestamp with time zone DEFAULT now(),
   recipients jsonb NOT NULL DEFAULT '[]'::jsonb,
   current_order integer NOT NULL DEFAULT 1,
@@ -145,7 +155,6 @@ CREATE TABLE IF NOT EXISTS public.signing_links (
   created_at timestamp with time zone DEFAULT now()
 );
 
--- Enable RLS
 ALTER TABLE public.envelopes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public access" ON public.envelopes;
 CREATE POLICY "Public access" ON public.envelopes FOR ALL TO anon USING (true) WITH CHECK (true);
@@ -154,10 +163,64 @@ CREATE POLICY "Public access" ON public.envelopes FOR ALL TO anon USING (true) W
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="bg-slate-900 text-white p-12 rounded-[3rem] shadow-2xl border border-slate-700">
-        <h2 className="text-3xl inter-black mb-6">Database Schema Mismatch</h2>
-        <p className="text-red-400 font-mono text-sm bg-red-500/10 p-4 rounded-xl mb-8 border border-red-500/20">{error}</p>
-        <button onClick={() => { navigator.clipboard.writeText(fullSchema); alert('SQL Copied!'); }} className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl mb-6">Copy Correct Schema SQL</button>
-        <button onClick={() => window.location.reload()} className="w-full bg-white text-slate-900 font-black py-5 rounded-2xl">Reconnect Registry</button>
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center border border-red-500/30">
+             <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          </div>
+          <h2 className="text-3xl inter-black">Registry Conflict Detected</h2>
+        </div>
+
+        <p className="text-red-400 font-mono text-sm bg-red-500/10 p-4 rounded-xl mb-8 border border-red-500/20">
+          {error || "Unknown synchronization issue."}
+        </p>
+
+        {isConstraintError ? (
+          <div className="space-y-6">
+            <div className="bg-blue-600/10 border border-blue-500/30 p-8 rounded-[2rem] text-center">
+              <h3 className="text-xl font-bold mb-4">Status Constraint Mismatch</h3>
+              <p className="text-slate-400 text-sm mb-8">Your database only accepts specific status strings (likely lowercase). Run this script to update the registry rules.</p>
+              <button 
+                onClick={() => { navigator.clipboard.writeText(fixConstraintSql); alert('Fix SQL Copied!'); }}
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all shadow-lg"
+              >
+                Copy Status Fix SQL
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white/5 p-8 rounded-[2rem] border border-white/10 flex flex-col">
+              <h3 className="text-lg font-bold mb-2">Partial Repair</h3>
+              <p className="text-slate-400 text-xs mb-6 flex-grow">Use this if only certain columns or constraints are missing.</p>
+              <button 
+                onClick={() => { navigator.clipboard.writeText(fixConstraintSql); alert('Fix SQL Copied!'); }}
+                className="bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all"
+              >
+                Copy Status Fix
+              </button>
+            </div>
+            <div className="bg-white/5 p-8 rounded-[2rem] border border-white/10 flex flex-col">
+              <h3 className="text-lg font-bold mb-2">Full Schema Sync</h3>
+              <p className="text-slate-400 text-xs mb-6 flex-grow">Reset the registry structure to perfectly match the current app version.</p>
+              <button 
+                onClick={() => { navigator.clipboard.writeText(fullSchema); alert('Full SQL Copied!'); }}
+                className="bg-slate-700 hover:bg-slate-600 text-white font-black py-4 rounded-2xl transition-all"
+              >
+                Copy Full Schema
+              </button>
+            </div>
+          </div>
+        )}
+        
+        <div className="mt-10 pt-10 border-t border-white/10 text-center">
+            <p className="text-slate-400 text-sm mb-6">Run the SQL in Supabase Dashboard, then reconnect.</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-white text-slate-900 font-black px-12 py-5 rounded-2xl hover:bg-slate-100 transition-all shadow-2xl"
+            >
+              Reconnect Registry
+            </button>
+        </div>
       </div>
     </div>
   );
