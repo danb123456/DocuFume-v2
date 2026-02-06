@@ -37,7 +37,7 @@ export interface Envelope {
   status: DocStatus;
   created_at: string;
   recipients: Recipient[];
-  currentOrder: number; // The current order index allowed to sign (starting at 1)
+  current_order: number; // The current order index allowed to sign (starting at 1)
   documentUrl: string; // Master Plate URL
   fields: DocField[];
   archiveUrl?: string;
