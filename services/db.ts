@@ -69,9 +69,9 @@ export const db = {
       created_at: envelope.created_at,
       recipients: envelope.recipients,
       current_order: envelope.current_order,
-      documentUrl: envelope.documentUrl,
+      document_url: envelope.document_url,
       fields: envelope.fields,
-      archiveUrl: envelope.archiveUrl
+      archive_url: envelope.archive_url
     })
 
     if (error) throw error
