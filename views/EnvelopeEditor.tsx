@@ -87,6 +87,10 @@ const EnvelopeEditor: React.FC = () => {
     setFields([...fields, { id: Math.random().toString(36).substr(2, 9), type: selectedFieldType, recipientId: selectedRecipientId, x, y }]);
   };
 
+  const removeField = (id: string) => {
+    setFields(fields.filter(f => f.id !== id));
+  };
+
   const saveEnvelope = async () => {
     if (!documentImage || recipients.some(r => !r.email) || fields.length === 0) return alert("Validation failed: Ensure all signers have emails and fields are placed.");
     setIsSaving(true);
@@ -105,7 +109,6 @@ const EnvelopeEditor: React.FC = () => {
       };
       await db.saveEnvelope(newEnv);
       
-      // Auto-generate first link
       const firstSigner = recipients.find(r => r.order === 1);
       if (firstSigner) await db.createSigningLink(id, firstSigner.email);
 
@@ -171,9 +174,16 @@ const EnvelopeEditor: React.FC = () => {
             <div ref={canvasRef} onClick={addField} className="relative bg-white shadow-2xl rounded-[2.5rem] overflow-hidden cursor-crosshair border border-slate-200">
               <img src={documentImage!} alt="Document" className="w-full block" />
               {fields.map((field) => (
-                <div key={field.id} style={{ left: `${field.x}%`, top: `${field.y}%` }} className="absolute transform -translate-x-1/2 -translate-y-1/2">
-                  <div className={`px-4 py-2 rounded-xl shadow-2xl flex items-center gap-3 border-2 ${field.recipientId === selectedRecipientId ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-800 border-slate-600 text-slate-300'}`}>
-                    <span className="text-[8px] font-black uppercase">R{recipients.findIndex(r => r.id === field.recipientId) + 1} {field.type.replace('_', ' ')}</span>
+                <div key={field.id} style={{ left: `${field.x}%`, top: `${field.y}%` }} className="absolute transform -translate-x-1/2 -translate-y-1/2 group">
+                  <div className={`px-4 py-2 rounded-xl shadow-2xl flex items-center gap-3 border-2 transition-transform hover:scale-105 ${field.recipientId === selectedRecipientId ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-800 border-slate-600 text-slate-300'}`}>
+                    <span className="text-[8px] font-black uppercase whitespace-nowrap">R{recipients.findIndex(r => r.id === field.recipientId) + 1} {field.type.replace('_', ' ')}</span>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); removeField(field.id); }} 
+                      className="w-4 h-4 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-[8px] font-bold"
+                      title="Remove field"
+                    >
+                      ×
+                    </button>
                   </div>
                 </div>
               ))}
